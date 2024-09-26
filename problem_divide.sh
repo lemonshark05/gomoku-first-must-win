@@ -16,6 +16,6 @@ fi
 cd gomoku
 rm divide
 
-echo $next_step >> ./black_steps.txt
+echo $next_step > ./black_steps.txt
 python3 ./script/divide.py ../$filename ./black_steps.txt
 

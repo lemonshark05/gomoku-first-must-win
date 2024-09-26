@@ -1,0 +1,14 @@
+./problem_comb.sh h8_i8_j8_l11
+./problem_comb.sh h8_i8_j8_f5
+./problem_comb.sh h8_i8_j8_f6
+./problem_comb.sh h8_i8_j8_f9
+./problem_comb.sh h8_i8_j8_g10
+./problem_comb.sh h8_i8_j8_h10
+./problem_comb.sh h8_i8_j8_g6
+./problem_comb.sh h8_i8_j8_j10
+./problem_comb.sh h8_i8_j8_j5
+./problem_comb.sh h8_i8_j8_j6
+./problem_comb.sh h8_i8_j8_k10
+./problem_comb.sh h8_i8_j8_k5
+./problem_comb.sh h8_i8_j8_k6
+./problem_comb.sh h8_i8_j8_l6

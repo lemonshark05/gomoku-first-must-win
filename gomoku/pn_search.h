@@ -51,7 +51,7 @@ public:
 #if defined(FIND_FROM_DB)
 		rocksdb::Options options;
         options.create_if_missing = true;
-        rocksdb::Status status = rocksdb::DB::OpenForReadOnly(options, "/Users/chenqiang/Documents/github/gomoku-first-move-always-win/gomoku/script/no_restrituion_gomoku.db", &db);
+        rocksdb::Status status = rocksdb::DB::OpenForReadOnly(options, "/Users/lemonshark/PycharmProjects/gomoku-first-move/gomoku/script/no_restrituion_gomoku.db", &db);
 #endif
 	}
     coords find_from_solved_solution(bit_board b);

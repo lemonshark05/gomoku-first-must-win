@@ -20,7 +20,8 @@
     <img id="hint" src="pic/line.png" hidden="hidden">
     <div id="cubes">
     </div>
-    <img src="pic/board.jpg" width="450px" height="450px">
+<!--    <img src="pic/board.jpg" width="450px" height="450px">-->
+    <canvas id="chessBoard" width="450" height="450"></canvas>
     <div>
         <button onclick="rollback();" type="button">悔棋 (BACK)</button>
         <button onclick="start();" type="button">重新开始 (RESTART)</button>
@@ -65,6 +66,75 @@
 </div>
 </body>
 <script>
+    function drawChessBoard() {
+        var canvas = document.getElementById('chessBoard');
+        // Ensure canvas size matches its CSS dimensions to avoid blurriness
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        if (canvas.getContext) {
+            var ctx = canvas.getContext('2d');
+            var width = canvas.width;
+            var height = canvas.height;
+            var margin = 20; // margin around the board
+            var spacing = (width - 2 * margin) / 14;
+            var pointRadius = 3;
+
+            // Draw gradient background
+            var gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, 'rgb(248, 206, 99)'); // Light color
+            gradient.addColorStop(1, 'rgb(180, 112, 10)'); // Dark color
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw board lines
+            ctx.beginPath();
+            for (var x = margin; x <= width - margin; x += spacing) {
+                ctx.moveTo(Math.round(x) + 0.5, Math.round(margin) + 0.5); // Adding 0.5 to align to pixel grid
+                ctx.lineTo(Math.round(x) + 0.5, Math.round(height - margin) + 0.5);
+            }
+            for (var y = margin; y <= height - margin; y += spacing) {
+                ctx.moveTo(Math.round(margin) + 0.5, Math.round(y) + 0.5);
+                ctx.lineTo(Math.round(width - margin) + 0.5, Math.round(y) + 0.5);
+            }
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw outermost lines with double thickness
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            // Horizontal lines
+            ctx.moveTo(margin, margin + 0.5);
+            ctx.lineTo(width - margin, margin + 0.5);
+            ctx.moveTo(margin, height - margin + 0.5);
+            ctx.lineTo(width - margin, height - margin + 0.5);
+            // Vertical lines
+            ctx.moveTo(margin + 0.5, margin);
+            ctx.lineTo(margin + 0.5, height - margin);
+            ctx.moveTo(width - margin + 0.5, margin);
+            ctx.lineTo(width - margin + 0.5, height - margin);
+            ctx.stroke();
+
+            // Draw center and corner points
+            ctx.fillStyle = 'black';
+            var points = [
+                {x: width / 2, y: height / 2}, // Center point
+                {x: margin + spacing * 3 + 0.5, y: margin + spacing * 3 + 0.5}, // Corner points
+                {x: width - margin - spacing * 3 + 0.5, y: margin + spacing * 3 + 0.5},
+                {x: margin + spacing * 3 + 0.5, y: height - margin - spacing * 3 + 0.5},
+                {x: width - margin - spacing * 3 + 0.5, y: height - margin - spacing * 3 + 0.5}
+            ];
+            points.forEach(function(point) {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, pointRadius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'black';
+                ctx.fill();
+            });
+        }
+    }
+
+    drawChessBoard();
     var steps_string = "h8";
     var person2person = false;
     var init_steps = findGetParameter("init_steps");
@@ -247,8 +317,8 @@
     }
 
     function getLocation(x, y) {
-        var boundary = 17;
-        var between = 29;
+        var boundary = 16;
+        var between = (450-40)/14;
         var size = 25;
         var left = between * x + boundary;
         var top = between * y + boundary;

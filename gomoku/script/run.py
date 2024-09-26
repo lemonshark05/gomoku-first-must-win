@@ -9,6 +9,7 @@ from divided_solution_manager import is_solved
 def run_sub_problem(filename):
     print('Run task %s (%s)...' % (filename, os.getpid()))
     start = time.time()
+    # cmd_line = "gtimeout 1800s ../noninteractive %s" % (filename)
     cmd_line = "../noninteractive %s" % (filename)
     print(cmd_line)
     os.system(cmd_line)

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gomoku</title>
+    <script src="js/jquery.js"></script>
+</head>
+
+<body>
+<div>
+    <div style="display: flex; align-items: center;"> <!-- Use flexbox for horizontal alignment -->
+        <div>
+            <img id="hint" src="pic/line.png" hidden="hidden">
+            <div id="cubes">
+            </div>
+<!--            <img src="pic/board.jpg" width="450px" height="450px">-->
+            <canvas id="chessBoard" width="450" height="450"></canvas>
+            <div>
+                <button onclick="rollback();" type="button">悔棋 (BACK)</button>
+                <button onclick="start();" type="button">重新开始 (RESTART)</button>
+            </div>
+        </div>
+        <div id="boardStringContainer" style="margin-left: 20px;">
+            <p>Board String:</p>
+            <textarea id="boardString" rows="5" cols="40" readonly></textarea>
+        </div>
+    </div>
+    <div>
+        <a href="?person2person=true">玩家对战 (Play with Player)</a>
+        <br/>
+        <a href="?">人机对战 (Play with AI)</a>
+    </div>
+</div>
+</body>
+<script>
+    function drawChessBoard() {
+        var canvas = document.getElementById('chessBoard');
+        // Ensure canvas size matches its CSS dimensions to avoid blurriness
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        if (canvas.getContext) {
+            var ctx = canvas.getContext('2d');
+            var width = canvas.width;
+            var height = canvas.height;
+            var margin = 20; // margin around the board
+            var spacing = (width - 2 * margin) / 14;
+            var pointRadius = 3;
+
+            // Draw gradient background
+            var gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, 'rgb(248, 206, 99)'); // Light color
+            gradient.addColorStop(1, 'rgb(180, 112, 10)'); // Dark color
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw board lines
+            ctx.beginPath();
+            for (var x = margin; x <= width - margin; x += spacing) {
+                ctx.moveTo(Math.round(x) + 0.5, Math.round(margin) + 0.5); // Adding 0.5 to align to pixel grid
+                ctx.lineTo(Math.round(x) + 0.5, Math.round(height - margin) + 0.5);
+            }
+            for (var y = margin; y <= height - margin; y += spacing) {
+                ctx.moveTo(Math.round(margin) + 0.5, Math.round(y) + 0.5);
+                ctx.lineTo(Math.round(width - margin) + 0.5, Math.round(y) + 0.5);
+            }
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw outermost lines with double thickness
+            ctx.beginPath();
+            ctx.lineWidth = 3;
+            // Horizontal lines
+            ctx.moveTo(margin, margin + 0.5);
+            ctx.lineTo(width - margin, margin + 0.5);
+            ctx.moveTo(margin, height - margin + 0.5);
+            ctx.lineTo(width - margin, height - margin + 0.5);
+            // Vertical lines
+            ctx.moveTo(margin + 0.5, margin);
+            ctx.lineTo(margin + 0.5, height - margin);
+            ctx.moveTo(width - margin + 0.5, margin);
+            ctx.lineTo(width - margin + 0.5, height - margin);
+            ctx.stroke();
+
+            // Draw center and corner points
+            ctx.fillStyle = 'black';
+            var points = [
+                {x: width / 2, y: height / 2}, // Center point
+                {x: margin + spacing * 3 + 0.5, y: margin + spacing * 3 + 0.5}, // Corner points
+                {x: width - margin - spacing * 3 + 0.5, y: margin + spacing * 3 + 0.5},
+                {x: margin + spacing * 3 + 0.5, y: height - margin - spacing * 3 + 0.5},
+                {x: width - margin - spacing * 3 + 0.5, y: height - margin - spacing * 3 + 0.5}
+            ];
+            points.forEach(function(point) {
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, pointRadius, 0, 2 * Math.PI);
+                ctx.fillStyle = 'black';
+                ctx.fill();
+            });
+        }
+    }
+
+    drawChessBoard();
+
+    var steps_string = "h8";
+    var person2person = false;
+    var init_steps = findGetParameter("init_steps");
+    var person2personGet = findGetParameter("person2person");
+    if(init_steps != null){
+        steps_string = init_steps;
+    }
+    if(person2personGet != null){
+        person2person = true;
+    }
+
+    var init_steps = steps_string.split("_");
+    var gameOver = false;
+    var level = "HIGH";
+    var thinking = false;
+    var historyStack = new Array();
+    var aiColor = "BLACK";
+    var rollbackTime = 0;
+    var gameId = guid();
+
+    var content = "";
+    for (i = 0; i < 15; i++) {
+        content = content + "<div>";
+        for (j = 0; j < 15; j++) {
+            content = content + "<img tag='.' lx='" + i + "' ly='" + j + "'  onClick='onClickCube(this)' id='" + i + "-" + j + "' style='" + getLocation(i, j) + "' src='pic/blank.png'>"
+        }
+        content = content + "</div>";
+    }
+    $("#cubes").html(content);
+
+    start();
+    function findGetParameter(parameterName) {
+        var result = null,
+            tmp = [];
+        location.search
+        .substr(1)
+        .split("&")
+        .forEach(function (item) {
+          tmp = item.split("=");
+          if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+        });
+        return result;
+    }
+
+    // steps is array of string, [a1, b2]
+    function init(steps){
+        steps_len = steps.length;
+        for (var i = 0; i < steps_len; i++) {
+            x = steps[i].charCodeAt(0) - "a".charCodeAt(0);
+            y = parseInt(steps[i].substring(1)) - 1;
+            color = aiColor;
+            if(i % 2){
+                color = getOtherColor(aiColor);
+            }else{
+                color = aiColor;
+            }
+            setColor(x, y, getColorChar(color));
+        }
+    }
+
+    function historyStack2stepsString(history){
+        var stepString = "";
+        for (i = 0; i < history.length; i++) {
+            char_x = String.fromCharCode(history[i].x + "a".charCodeAt(0));
+            y_start_1 = history[i].y + 1;
+            stepString = stepString + "_" + char_x + y_start_1;
+        }
+        document.getElementById("boardString").value = stepString;
+        return stepString;
+    }
+
+    function start() {
+        if (thinking) {
+            alert("正在计算中...请稍后");
+            return;
+        }
+        gameOver = false;
+        historyStack = new Array();
+        for (i = 0; i < 15; i++)
+            for (j = 0; j < 15; j++) {
+                var id = "#" + i + "-" + j;
+                $(id).attr("tag", ".");
+                $(id).attr("src", "pic/blank.png");
+            }
+        init(init_steps);
+        console.log("history stack length " + historyStack.length)
+        if(historyStack.length % 2 == 0){
+            console.log("request for the beginning board");
+            if(!person2person) {
+                submit();
+            }
+        }
+    }
+
+    function rollback(x, y, color) {
+        rollbackTime++;
+        if (gameOver || thinking) {
+            return;
+        }
+        if (historyStack.length < 2) {
+            return;
+        }
+        var id;
+        var pointWhite = historyStack.pop();
+        id = "#" + pointWhite.x + "-" + pointWhite.y;
+        $(id).attr("tag", ".");
+        $(id).attr("src", "pic/blank.png");
+
+        var pointBlack = historyStack.pop();
+        id = "#" + pointBlack.x + "-" + pointBlack.y;
+        $(id).attr("tag", ".");
+        $(id).attr("src", "pic/blank.png");
+
+        if (historyStack.length > 0) {
+            var lastHit = historyStack[historyStack.length - 1];
+            moveHint(lastHit.x, lastHit.y);
+        } else {
+            hiddenHint();
+        }
+
+    }
+
+    function setColor(x, y, color) {
+        var id = "#" + x + "-" + y;
+        if (color == "×") {
+            $(id).attr("tag", color);
+            $(id).attr("src", "pic/black.png");
+        }
+        if (color == "●") {
+            $(id).attr("tag", color);
+            $(id).attr("src", "pic/white.png");
+        }
+        moveHint(x, y);
+        var point = {
+            "x": x,
+            "y": y
+        }
+        historyStack.push(point);
+        winCheck(historyStack);
+    }
+
+    function getOtherColor(color) {
+        if (color == "WHITE") {
+            return "BLACK";
+        }
+        if (color == "BLACK") {
+            return "WHITE";
+        }
+        return null;
+    }
+
+    function getColorChar(color) {
+        if (color == "WHITE") {
+            return "●";
+        }
+        if (color == "BLACK") {
+            return "×";
+        }
+        return null;
+    }
+    function onClickCube(obj) {
+        if (!person2person && thinking) {
+            alert("正在计算中...请稍后");
+            return;
+        }
+        if (gameOver) {
+            return;
+        }
+        var id = obj.id;
+        var x = parseInt(id.split("-")[0]);
+        var y = parseInt(id.split("-")[1]);
+        if ($("#" + id).attr("tag") == ".") {
+            var color = "WHITE";
+            if(historyStack.length % 2 == 0){
+                color = "BLACK";
+            }
+            setColor(x, y, getColorChar(color));
+            if(!person2person){
+                submit();
+            }
+        }
+    }
+
+    function getLocation(x, y) {
+        var boundary = 16;
+        var between = (450-40)/14;
+        var size = 25;
+        var left = between * x + boundary;
+        var top = between * y + boundary;
+        return "position:absolute;left:" + left + "px;top:" + top + "px;width:" + size + "px;height:" + size + "px"
+    }
+
+    function moveHint(x, y) {
+        $("#hint").removeAttr("hidden");
+        $("#hint").attr("style", getLocation(x, y));
+        $("#hint").attr("style", getLocation(x, y));
+    }
+
+    function hiddenHint() {
+        $("#hint").attr("hidden", "hidden");
+    }
+
+    function submit() {
+        var stepsString = historyStack2stepsString(historyStack);
+        var params = {
+            "stepsString": stepsString,
+            "color": aiColor,
+            "level": level,
+            "gameId": gameId
+        }
+
+<!--        thinking = true;-->
+<!--        $.ajax({-->
+<!--            type: "GET",-->
+<!--            url: "/",-->
+<!--            data: params,-->
+<!--            datatype: "json",-->
+<!--            success: function (data) {-->
+<!--                if (data != null && data != "") {-->
+<!--                    setColor(data.x, data.y, getColorChar(aiColor));-->
+<!--                }-->
+<!--                thinking = false;-->
+<!--            },-->
+<!--            error: function () {-->
+<!--                thinking = false;-->
+<!--            }-->
+<!--        });-->
+    }
+
+    function point2str(point){
+        return point.x + "," + point.y;
+    }
+
+    function winCheckForOneSide(oneSideArr){
+        let mySet = new Set(); // use string as the element, so that it can be retrieved natively
+        let dirs = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        for(i = 0; i < oneSideArr.length; i++){
+            mySet.add(point2str(oneSideArr[i]));
+        }
+        for(x = 0; x < 15; x++){
+            for(y = 0; y < 15; y++){
+                if(mySet.has(point2str({x: x, y: y}))){
+                    for(d = 0; d < dirs.length; d++){
+                        var w = true;
+                        for(c = 1; c < 5; c++){
+                            next_point = {x: x + dirs[d][0]*c, y: y + dirs[d][1]*c};
+                            if(!mySet.has(point2str(next_point))){
+                                w = false;
+                                break;
+                            }
+                        }
+                        if(w){return true;}
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    console.assert(!winCheckForOneSide([{x: 7, y: 2}, {x: 7, y: 3}, {x: 7, y: 4}]));
+    console.assert(winCheckForOneSide([{x: 7, y: 0}, {x: 7, y: 1}, {x: 7, y: 2}, {x: 7, y: 3}, {x: 7, y: 4}]));
+
+    function winCheck(historyArr) {
+    /*
+    first is black, second is white etc
+    */
+        var blackArr = Array();
+        var whiteArr = Array();
+        for(i = 0; i < historyArr.length; i++){
+            if(i % 2 == 0){
+                blackArr.push(historyArr[i]);
+            }else{
+                whiteArr.push(historyArr[i]);
+            }
+        }
+        console.log("white length " + whiteArr.length);
+        if (winCheckForOneSide(blackArr)) {
+            alert("黑棋胜利");
+            thinking = false;
+        }
+        if (winCheckForOneSide(whiteArr)) {
+            alert("白棋胜利");
+            thinking = false;
+        }
+    }
+
+    function guid() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+</script>
+</html>

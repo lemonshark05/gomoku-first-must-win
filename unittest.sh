@@ -8,6 +8,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   clang++ -stdlib=libc++ -Wall -pedantic *.cpp -o unittest -std=c++17 -DUNITTEST
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   echo "I am mac"
+  export LIBRARY_PATH="$LIBRARY_PATH:/opt/homebrew/lib/"
   g++  *.cpp -o unittest -std=c++17 -DUNITTEST
 else
   echo "this platform is not supported"

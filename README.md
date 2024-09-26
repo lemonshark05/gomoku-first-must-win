@@ -12,7 +12,7 @@ run it from codebase:
 ```bash
 bash ./compile_for_web.sh
 cd gomoku/script
-python3 ./tornado_server.py 80 debug
+python3 ./tornado_server.py 8080 debug
 ```
 open url: http://127.0.0.1/web/gomoku.html
 
@@ -44,7 +44,7 @@ If you need to have rocksdb@6 first in your PATH, run:
     echo 'export PATH="/usr/local/opt/rocksdb@6/bin:$PATH"' >> ~/.zshrc
 
 For compilers to find rocksdb@6 you may need to set:
-    export LDFLAGS="-L/usr/local/opt/rocksdb@6/lib"
+    export LDFLAGS="-L/opt/rocksdb@6/lib"
     export CPPFLAGS="-I/usr/local/opt/rocksdb@6/include"
 For pkg-config to find rocksdb@6 you may need to set:
     export PKG_CONFIG_PATH="/usr/local/opt/rocksdb@6/lib/pkgconfig"

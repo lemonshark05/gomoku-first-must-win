@@ -202,6 +202,7 @@ def next_steps_suggestion(board_str, divided_folder):
             for b in board_situations:
                 if not ("%s.board2action.txt" % b) in solved_situations_solutions:
                     unsolved_board_situation.append(b)
+            # print("Unsolved " + str(len(unsolved_board_situation)) + " txt files")
             for un_s in unsolved_board_situation:
                 un_s_str = un_s.split("/")[3].strip(".txt")
                 found = False
@@ -542,7 +543,7 @@ def get_all_board2action():
         full_dirname = "%s%s/" % (top_dir_name, sub_dir)
         if not os.path.isdir(full_dirname):
             continue
-        for filename in os.listdir(full_dirname):
+        for i, filename in os.listdir(full_dirname):
             i += 1
             if filename.endswith("board2action.txt"):
                 full_filename = "%s%s" % (full_dirname, filename)

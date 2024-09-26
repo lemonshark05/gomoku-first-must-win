@@ -23,6 +23,8 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   clang++ -std=c++17 -stdlib=libc++ -Wall -pedantic *.cpp -o noninteractive -DCLI -DTEST -DNOINTERACTIVE -DLOADCACHE
 elif [[ "$OSTYPE" == "darwin"* ]]; then
   echo "I am mac"
+  export LIBRARY_PATH="$LIBRARY_PATH:/opt/homebrew/lib/"
+  echo $LIBRARY_PATH
   g++  *.cpp -o noninteractive -std=c++17 -DFIND_FROM_DB -DNOINTERACTIVE $flag -DCLI -DTEST `pkg-config --cflags --libs protobuf` -I/opt/homebrew/opt/rocksdb@6/include -lsnappy -lgflags -lz -lbz2 -llz4 -lzstd /opt/homebrew/opt/rocksdb@6/lib/librocksdb.a
 else
   echo "this platform is not supported"
